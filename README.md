@@ -11,7 +11,7 @@ A basic Reddit clone backend built with Express.js and Prisma.
 
 ## Tech Stack
 
-- **Backend:** Node.js, Express.js
+- **Backend:** Next.js 
 - **Database:** PostgreSQL (Neon)
 - **ORM:** Prisma
 - **Validation:** Zod
