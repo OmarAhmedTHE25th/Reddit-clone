@@ -1,10 +1,11 @@
-# Reddit Clone — Setup & Development Guide
+# Reddit Clone — Next.js Setup & Development Guide
 
 ## 1. Prerequisites
 
 Before starting, make sure you have the following installed:
-- **Node.js**: `v18.x` or higher (verify via `node -v`)
+- **Node.js**: `v18.18.x` or higher (verify via `node -v`)
 - **Git**
+- **npm**
 
 ---
 
@@ -18,7 +19,7 @@ cd Reddit-clone
 npm install
 ```
 
-> ⚠️ **Important:** Do NOT upgrade or change Prisma to v7. Our project is pinned to Prisma `v6.4.x` to maintain full schema compatibility. Running `npm install` installs the exact pinned versions.
+> ⚠️ **Important:** Do NOT upgrade or change Prisma to v7. Our project uses Prisma `v6.19.x` to maintain full schema compatibility. Running `npm install` installs the versions declared in `package.json`.
 
 ---
 
@@ -49,18 +50,50 @@ npx prisma generate
 
 ---
 
-## 5. Verify Database Connection
+## 5. Understand the Project Structure
 
-Start your local server:
+The project uses the Next.js App Router. The existing `prisma/` directory remains at the project root and must not be moved:
+
+```text
+app/
+├── api/
+│   └── health/
+│       └── route.js
+├── layout.js
+└── page.js
+
+lib/
+└── prisma.js
+
+prisma/
+├── schema.prisma
+└── migrations/
+```
+
+- `app/layout.js` is the required root layout for the App Router.
+- `app/page.js` is the home page at `/`.
+- `app/api/health/route.js` is the database health-check Route Handler at `/api/health`.
+- `lib/prisma.js` contains the shared Prisma Client singleton. It reuses the client during development hot-reloading to help prevent Neon connection pool exhaustion.
+- `prisma/schema.prisma` and committed migration files remain the source of truth for the database schema.
+
+---
+
+## 6. Verify the Next.js Server and Database Connection
+
+Start the Next.js development server:
 
 ```bash
 npm run dev
-# or
-node src/server.js
 ```
 
-Open your browser and navigate to:
-👉 **`http://localhost:5000/api/health`**
+Next.js starts locally at:
+👉 **`http://localhost:3000`**
+
+Open the home page to verify that the App Router is working:
+👉 **`http://localhost:3000/`**
+
+Then open the database health-check Route Handler:
+👉 **`http://localhost:3000/api/health`**
 
 You should see this exact response:
 ```json
@@ -74,7 +107,26 @@ If you receive this response, your local setup is fully functional and successfu
 
 ---
 
-## 6. Visualizing Database Records (Prisma Studio)
+## 7. Build and Start the Production Server
+
+To verify the production build:
+
+```bash
+npm run build
+```
+
+After the build succeeds, start the production server:
+
+```bash
+npm run start
+```
+
+The production server is available at:
+👉 **`http://localhost:3000`**
+
+---
+
+## 8. Visualizing Database Records (Prisma Studio)
 
 To inspect, create, or update records in our Neon database using a browser interface:
 
@@ -85,7 +137,7 @@ This opens Prisma Studio at **`http://localhost:5555`**.
 
 ---
 
-## 7. Development & Git Workflow
+## 9. Development & Git Workflow
 
 - **Branch Naming:** Never push directly to `main`. Create a feature branch:
   ```bash
