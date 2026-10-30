@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/api/axios.ts","./src/components/auth/authmodal.tsx","./src/components/common/useravatar.tsx","./src/components/layout/navbar.tsx","./src/context/authcontext.tsx","./src/pages/homepage.tsx","./src/pages/profilepage.tsx","./src/pages/searchpage.tsx","./src/pages/settingspage.tsx"],"version":"5.9.3"}
