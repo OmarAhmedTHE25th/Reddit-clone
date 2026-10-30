@@ -1,19 +1,20 @@
 # Reddit Clone
 
-A basic Reddit clone backend built with Express.js and Prisma.
+A full-stack Reddit clone built with Next.js, the App Router, Prisma, and PostgreSQL on Neon.
 
 ## Features
 
-- **User Authentication:** Sign up and login with JWT and Refresh Tokens.
-- **Database Integration:** Powered by PostgreSQL and Prisma ORM.
-- **Security:** Password hashing with bcrypt and input validation with Zod.
-- **Health Check:** API endpoint to verify database connectivity.
+- **Next.js App Router:** Full-stack application structure with pages and Route Handlers.
+- **Database Integration:** PostgreSQL on Neon through Prisma ORM.
+- **Security Foundation:** Password hashing with bcrypt and input validation with Zod.
+- **Health Check:** `/api/health` verifies database connectivity.
 
 ## Tech Stack
 
-- **Backend:** Next.js 
+- **Framework:** Next.js (App Router)
+- **UI:** React
 - **Database:** PostgreSQL (Neon)
-- **ORM:** Prisma
+- **ORM:** Prisma 6
 - **Validation:** Zod
 - **Authentication:** JWT, bcrypt
 
@@ -21,9 +22,9 @@ A basic Reddit clone backend built with Express.js and Prisma.
 
 ### Prerequisites
 
-- Node.js (v18 or higher)
-- npm or yarn
-- A PostgreSQL database (e.g., Neon)
+- Node.js `v18.18` or higher
+- npm
+- A PostgreSQL database, such as Neon
 
 ### Installation
 
@@ -39,27 +40,64 @@ A basic Reddit clone backend built with Express.js and Prisma.
    ```
 
 3. Set up environment variables:
-   Create a `.env` file in the root directory and add the following:
+   Create a `.env` file in the project root and add your Neon connection values:
    ```env
    DATABASE_URL="your_postgresql_url"
    DIRECT_URL="your_direct_postgresql_url"
-   PORT=5000
    JWT_SECRET="your_jwt_secret"
    ```
 
-4. Run database migrations:
+4. Generate the Prisma Client:
+   ```bash
+   npx prisma generate
+   ```
+
+5. Apply database migrations:
    ```bash
    npx prisma migrate dev
    ```
 
 ### Running the App
 
-Start the development server:
+Start the Next.js development server:
 ```bash
-node src/server.js
+npm run dev
 ```
 
-The server will be running on `http://localhost:5000`.
+The application will be running on `http://localhost:3000`.
+
+Open the following URLs to verify the setup:
+
+- Home page: `http://localhost:3000/`
+- Database health check: `http://localhost:3000/api/health`
+
+Successful database connectivity returns:
+
+```json
+{
+  "status": "ok",
+  "database": "connected to Neon"
+}
+```
+
+### Production
+
+Build and start the production server:
+
+```bash
+npm run build
+npm run start
+```
+
+### Prisma Studio
+
+Open Prisma Studio to inspect the Neon database:
+
+```bash
+npx prisma studio
+```
+
+Prisma Studio will be available at `http://localhost:5555`.
 
 ## Contributing
 
