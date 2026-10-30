@@ -27,10 +27,6 @@ npm install
 Database credentials and cryptographic secrets are omitted from Git tracking for security.
 
 1. Create a `.env` file in the project root:
-   ```bash
-   cp .env.example .env
-   ```
-   *(Or create a new file named `.env` in the root folder).*
 
 2. Paste the shared credentials into your `.env`:
 
