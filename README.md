@@ -1,93 +1,70 @@
-# Reddit Clone — Setup & Development Guide
+# Reddit Clone
 
-## 1. Prerequisites
+A basic Reddit clone backend built with Express.js and Prisma.
 
-Before starting, make sure you have the following installed:
-- **Node.js**: `v18.x` or higher (verify via `node -v`)
-- **Git**
+## Features
 
----
+- **User Authentication:** Sign up and login with JWT and Refresh Tokens.
+- **Database Integration:** Powered by PostgreSQL and Prisma ORM.
+- **Security:** Password hashing with bcrypt and input validation with Zod.
+- **Health Check:** API endpoint to verify database connectivity.
 
-## 2. Clone & Install Dependencies
+## Tech Stack
 
-Clone the repository and install the project dependencies:
+- **Backend:** Node.js, Express.js
+- **Database:** PostgreSQL (Neon)
+- **ORM:** Prisma
+- **Validation:** Zod
+- **Authentication:** JWT, bcrypt
 
+## Getting Started
+
+### Prerequisites
+
+- Node.js (v18 or higher)
+- npm or yarn
+- A PostgreSQL database (e.g., Neon)
+
+### Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/OmarAhmedTHE25th/Reddit-clone.git
+   cd Reddit-clone
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Set up environment variables:
+   Create a `.env` file in the root directory and add the following:
+   ```env
+   DATABASE_URL="your_postgresql_url"
+   DIRECT_URL="your_direct_postgresql_url"
+   PORT=5000
+   JWT_SECRET="your_jwt_secret"
+   ```
+
+4. Run database migrations:
+   ```bash
+   npx prisma migrate dev
+   ```
+
+### Running the App
+
+Start the development server:
 ```bash
-git clone https://github.com/OmarAhmedTHE25th/Reddit-clone.git
-cd Reddit-clone
-npm install
-```
-
-> ⚠️ **Important:** Do NOT upgrade or change Prisma to v7. Our project is pinned to Prisma `v6.4.x` to maintain full schema compatibility. Running `npm install` installs the exact pinned versions.
-
----
-
-## 3. Environment Variables Setup (`.env`)
-
-Database credentials and cryptographic secrets are omitted from Git tracking for security.
-
-1. Create a `.env` file in the project root
-
-2. Paste the shared credentials (sent via WhatsApp) into your `.env`
-
----
-
-## 4. Sync Prisma Client
-
-After creating your `.env`, run the client generator so your local editor/IDE recognizes all database models and types:
-
-```bash
-npx prisma generate
-```
-
-> **Pulling Schema Updates:**  
-> Whenever someone pushes schema updates to `prisma/schema.prisma`, pull the changes and run:
-> ```bash
-> npx prisma migrate dev
-> ```
-> *Do not manually edit files inside the `prisma/migrations/` directory.*
-
----
-
-## 5. Verify Database Connection
-
-Start your local server:
-
-```bash
-npm run dev
-# or
 node src/server.js
 ```
 
-Open your browser and navigate to:
-👉 **`http://localhost:5000/api/health`**
+The server will be running on `http://localhost:5000`.
 
-You should see this exact response:
-```json
-{
-  "status": "ok",
-  "database": "connected to Neon"
-}
-```
+## Contributing
 
-If you receive this response, your local setup is fully functional and successfully connected to Neon.
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
----
+## License
 
-## 6. Visualizing Database Records (Prisma Studio)
-
-To inspect, create, or update records in our Neon database using a browser interface:
-
-```bash
-npx prisma studio
-```
-This opens Prisma Studio at **`http://localhost:5555`**.
-
----
-
-## 7. Development & Git Workflow
-
-- **Branch Naming:** Never push directly to `main`. Create a feature branch:
-  ```bash
-  git checkout -b feature/<your-name>/<feature-name>
-  ```
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
