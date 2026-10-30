@@ -34,14 +34,7 @@ Database credentials and cryptographic secrets are omitted from Git tracking for
 
 2. Paste the shared credentials into your `.env`:
 
-```env
-DATABASE_URL="postgresql://neondb_owner:npg_w0JvTpbXH8OS@ep-billowing-unit-b4sm2y4z-pooler.c-6.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
-DIRECT_URL="postgresql://neondb_owner:npg_w0JvTpbXH8OS@ep-billowing-unit-b4sm2y4z.c-6.us-east-2.aws.neon.tech/neondb?sslmode=require"
-
-PORT=5000
-JWT_ACCESS_SECRET="2cc3bffa8e89f69bc040097a7ec90f70d7dd6b273863c1c2bfdcd7f4a5bf3f9d86b2f6560b3fc4fb264c75c7c34477a53e3aecb57fce398294a38227bc7b397b"
-JWT_REFRESH_SECRET="c60e27dd39bd3ed77584aa724566b08a358ccd737f381f998eb539d102dde881a31a4846669447852221df83e79ec09b75f486fa5ddc85c248456ef201ccd17d"
-```
+(it's sent on whatsapp)
 
 ---
 
