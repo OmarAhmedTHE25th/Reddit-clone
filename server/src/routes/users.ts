@@ -1,0 +1,24 @@
+import { Router } from 'express';
+import {
+  searchUsers,
+  getUserProfile,
+  updateMyProfile,
+} from '../controllers/user.controller.js';
+import { requireAuth, optionalAuth } from '../middlewares/auth.middleware.js';
+import {
+  validateBody,
+  validateQuery,
+} from '../middlewares/validate.middleware.js';
+import {
+  updateProfileSchema,
+  searchUsersQuerySchema,
+} from '../validations/auth.validation.js';
+
+const router = Router();
+
+// Static routes MUST be registered before dynamic /:username
+router.get('/search', validateQuery(searchUsersQuerySchema), searchUsers);
+router.patch('/me', requireAuth, validateBody(updateProfileSchema), updateMyProfile);
+router.get('/:username', optionalAuth, getUserProfile);
+
+export default router;
