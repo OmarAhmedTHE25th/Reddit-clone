@@ -1,13 +1,17 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ShieldCheck, CheckCircle2, AlertCircle } from 'lucide-react';
+import api from '../api/axios';
+import { useAuth } from '../context/AuthContext';
 
 interface HealthData {
   status: string;
   database: string;
   timestamp?: string;
-  error?: string;
 }
 
 export default function HomePage() {
+  const { user, isAuthenticated, openAuthModal } = useAuth();
   const [health, setHealth] = useState<HealthData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -19,19 +23,15 @@ export default function HomePage() {
       try {
         setLoading(true);
         setError(null);
-
-        const res = await fetch('/api/health');
-        if (!res.ok) {
-          throw new Error(`Server responded with HTTP ${res.status}`);
-        }
-
-        const data: HealthData = await res.json();
+        const res = await api.get<HealthData>('/health');
         if (isMounted) {
-          setHealth(data);
+          setHealth(res.data);
         }
       } catch (err) {
         if (isMounted) {
-          setError(err instanceof Error ? err.message : 'Failed to reach API server');
+          setError(
+            err instanceof Error ? err.message : 'Failed to reach API server'
+          );
         }
       } finally {
         if (isMounted) {
@@ -41,33 +41,94 @@ export default function HomePage() {
     }
 
     checkHealth();
-
     return () => {
       isMounted = false;
     };
   }, []);
 
   return (
-    <main style={{ fontFamily: 'system-ui, -apple-system, sans-serif', padding: '2rem', maxWidth: '640px', margin: '0 auto' }}>
-      <h1>Reddit Clone</h1>
-      <p>Decoupled React (Vite) + Express monorepo architecture.</p>
-
-      <section style={{ marginTop: '1.5rem', padding: '1rem', border: '1px solid #e2e8f0', borderRadius: '8px', background: '#f8fafc' }}>
-        <h2>Backend Status (/api/health)</h2>
-        {loading && <p>Checking backend connectivity...</p>}
-        {error && (
-          <p style={{ color: '#dc2626' }}>
-            <strong>Backend Error:</strong> {error}
-          </p>
-        )}
-        {health && (
-          <div>
-            <p><strong>Status:</strong> {health.status}</p>
-            <p><strong>Database:</strong> {health.database}</p>
-            {health.timestamp && <p><strong>Server Time:</strong> {new Date(health.timestamp).toLocaleString()}</p>}
+    <main className="page-container">
+      <div className="profile-grid">
+        {/* Main Feed Placeholder */}
+        <section className="card card-body">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+            <ShieldCheck size={24} color="var(--reddit-orange)" />
+            <h1 style={{ margin: 0, fontSize: '1.4rem' }}>
+              Welcome to Reddit Clone
+            </h1>
           </div>
-        )}
-      </section>
+
+          <p style={{ color: 'var(--text-secondary)', lineHeight: 1.5, marginTop: 0 }}>
+            Authentication, rotating refresh-token sessions, public user profiles,
+            profile editing, and user search are live and ready for the team.
+          </p>
+
+          {isAuthenticated && user ? (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '16px' }}>
+              <Link to={`/u/${user.username}`} className="btn btn-primary">
+                View My Profile (u/{user.username})
+              </Link>
+              <Link to="/settings" className="btn btn-secondary">
+                Edit Profile Settings
+              </Link>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '16px' }}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => openAuthModal('register')}
+              >
+                Create Account
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => openAuthModal('login')}
+              >
+                Log In
+              </button>
+            </div>
+          )}
+        </section>
+
+        {/* Sidebar: Backend Health */}
+        <aside className="card card-body">
+          <h2 style={{ margin: '0 0 12px', fontSize: '1rem' }}>
+            Backend Status
+          </h2>
+
+          {loading && (
+            <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+              Checking Express &amp; Neon connectivity...
+            </p>
+          )}
+
+          {error && (
+            <div className="alert alert-error" style={{ marginBottom: 0, display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <AlertCircle size={18} />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {health && (
+            <div style={{ fontSize: '0.88rem', display: 'grid', gap: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--success)', fontWeight: 600 }}>
+                <CheckCircle2 size={16} />
+                API: {health.status}
+              </div>
+              <div>
+                <strong>Database:</strong> {health.database}
+              </div>
+              {health.timestamp && (
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                  Checked: {new Date(health.timestamp).toLocaleTimeString()}
+                </div>
+              )}
+            </div>
+          )}
+        </aside>
+      </div>
     </main>
   );
 }
