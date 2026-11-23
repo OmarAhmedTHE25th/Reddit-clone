@@ -1,0 +1,262 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Reddit Clone — Auth & User Identity API",
+    "version": "1.0.0",
+    "description": "Authentication, session rotation, user profile management, and user search endpoints for the Reddit Clone monorepo."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000",
+      "description": "Local Express development server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Short-lived 15m JWT access token returned by /api/auth/login, /api/auth/register, and /api/auth/refresh."
+      },
+      "refreshCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "refreshToken",
+        "description": "HttpOnly, rotating 7-day refresh token cookie scoped to /api/auth."
+      }
+    },
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "username": { "type": "string", "example": "alice_dev" },
+          "email": { "type": "string", "format": "email", "example": "alice@example.com" },
+          "displayName": { "type": "string", "nullable": true, "example": "Alice" },
+          "bio": { "type": "string", "nullable": true, "example": "Building full-stack apps." },
+          "avatarUrl": { "type": "string", "format": "uri", "nullable": true },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "PublicProfile": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "username": { "type": "string", "example": "alice_dev" },
+          "displayName": { "type": "string", "nullable": true },
+          "bio": { "type": "string", "nullable": true },
+          "avatarUrl": { "type": "string", "format": "uri", "nullable": true },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "counts": {
+            "type": "object",
+            "properties": {
+              "posts": { "type": "integer", "example": 0 },
+              "comments": { "type": "integer", "example": 0 }
+            }
+          },
+          "joinedCommunities": {
+            "type": "array",
+            "items": { "type": "object" }
+          },
+          "isOwnProfile": { "type": "boolean" }
+        }
+      },
+      "AuthResponse": {
+        "type": "object",
+        "properties": {
+          "accessToken": { "type": "string" },
+          "user": { "$ref": "#/components/schemas/User" }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string" },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": { "type": "string" },
+                "message": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/auth/register": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Register a new user account",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username", "email", "password"],
+                "properties": {
+                  "username": { "type": "string", "minLength": 3, "maxLength": 20, "example": "alice_dev" },
+                  "email": { "type": "string", "format": "email", "example": "alice@example.com" },
+                  "password": { "type": "string", "minLength": 8, "example": "SecurePass123" },
+                  "displayName": { "type": "string", "maxLength": 50, "example": "Alice" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Account created; access token returned in JSON and refreshToken cookie set.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthResponse" } } }
+          },
+          "400": { "description": "Zod validation error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "409": { "description": "Username or email already exists" }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Authenticate with email or username and password",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["identifier", "password"],
+                "properties": {
+                  "identifier": { "type": "string", "example": "alice@example.com" },
+                  "password": { "type": "string", "example": "SecurePass123" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authenticated; access token returned and HttpOnly refreshToken cookie set.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthResponse" } } }
+          },
+          "401": { "description": "Invalid credentials" }
+        }
+      }
+    },
+    "/api/auth/refresh": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Rotate refresh token cookie and issue a fresh access token",
+        "security": [{ "refreshCookie": [] }],
+        "responses": {
+          "200": {
+            "description": "New access token returned and rotated refreshToken cookie set.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthResponse" } } }
+          },
+          "401": { "description": "Missing, expired, revoked, or replayed refresh token" }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Revoke active refresh token and clear cookie",
+        "security": [{ "refreshCookie": [] }],
+        "responses": {
+          "200": { "description": "Logged out successfully" }
+        }
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Get currently authenticated user profile",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Authenticated user object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "user": { "$ref": "#/components/schemas/User" } }
+                }
+              }
+            }
+          },
+          "401": { "description": "Missing or invalid Bearer token" }
+        }
+      }
+    },
+    "/api/users/search": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Search users by username or display name",
+        "parameters": [
+          { "name": "q", "in": "query", "required": true, "schema": { "type": "string", "minLength": 1 } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 10, "maximum": 50 } }
+        ],
+        "responses": {
+          "200": { "description": "Paginated list of matching users" },
+          "400": { "description": "Missing or invalid query parameters" }
+        }
+      }
+    },
+    "/api/users/me": {
+      "patch": {
+        "tags": ["Users"],
+        "summary": "Update authenticated user's profile",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "displayName": { "type": "string", "maxLength": 50, "nullable": true },
+                  "bio": { "type": "string", "maxLength": 300, "nullable": true },
+                  "avatarUrl": { "type": "string", "format": "uri", "nullable": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Updated user profile" },
+          "400": { "description": "Validation error" },
+          "401": { "description": "Authentication required" }
+        }
+      }
+    },
+    "/api/users/{username}": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Fetch public profile by username",
+        "parameters": [
+          { "name": "username", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Public user profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "user": { "$ref": "#/components/schemas/PublicProfile" } }
+                }
+              }
+            }
+          },
+          "404": { "description": "User not found" }
+        }
+      }
+    }
+  }
+}
