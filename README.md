@@ -1,108 +1,111 @@
 # Reddit Clone
 
-A full-stack Reddit clone built with Next.js, the App Router, Prisma, and PostgreSQL on Neon.
+A decoupled full-stack Reddit clone built with a **React (Vite) SPA** frontend and an **Express REST API** backend, backed by **Prisma** and **PostgreSQL (Neon)**.
 
-## Features
+---
 
-- **Next.js App Router:** Full-stack application structure with pages and Route Handlers.
-- **Database Integration:** PostgreSQL on Neon through Prisma ORM.
-- **Security Foundation:** Password hashing with bcrypt and input validation with Zod.
-- **Health Check:** `/api/health` verifies database connectivity.
+## 🏛️ Architecture Overview
 
-## Tech Stack
+The repository is structured as a clean monorepo with strict separation of concerns and zero framework magic:
 
-- **Framework:** Next.js (App Router)
-- **UI:** React
-- **Database:** PostgreSQL (Neon)
-- **ORM:** Prisma 6
-- **Validation:** Zod
-- **Authentication:** JWT, bcrypt
+```
+Reddit-clone/
+├── client/                     # Pure client-side React SPA (Vite)
+│   ├── src/
+│   │   ├── pages/
+│   │   │   └── HomePage.tsx   # React component with explicit useEffect + fetch
+│   │   ├── App.tsx            # Client routing via react-router-dom
+│   │   └── main.tsx           # React DOM root
+│   ├── index.html
+│   ├── vite.config.ts         # Proxy /api requests to Express (:5000)
+│   └── package.json
+│
+├── server/                     # Standalone Node.js + Express REST API
+│   ├── prisma/                # Isolated database schema and migrations
+│   │   ├── migrations/
+│   │   └── schema.prisma
+│   ├── src/
+│   │   ├── db/
+│   │   │   └── prisma.ts      # Singleton Prisma Client
+│   │   ├── routes/
+│   │   │   └── health.ts      # Express /api/health endpoint
+│   │   └── index.ts           # Express server setup with CORS & JSON body parsing
+│   ├── .env                   # Database credentials & JWT secrets
+│   └── package.json
+│
+├── package.json               # Root orchestrator with concurrent dev runner
+└── .gitignore
+```
 
-## Getting Started
+---
 
-### Prerequisites
+## 🚀 Getting Started
 
-- Node.js `v18.18` or higher
+### 1. Prerequisites
+- Node.js `v18.18+` or higher
 - npm
-- A PostgreSQL database, such as Neon
 
-### Installation
+### 2. Installation
+Install all dependencies across the root, server, and client:
+```bash
+npm run install:all
+```
+*(Or run `npm install` inside root, `/server`, and `/client` individually).*
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/OmarAhmedTHE25th/Reddit-clone.git
-   cd Reddit-clone
-   ```
+### 3. Environment Variables
+Create or verify `server/.env`:
+```env
+# Database connection URLs (PostgreSQL / Neon)
+DATABASE_URL="postgresql://user:password@host/db?sslmode=require"
+DIRECT_URL="postgresql://user:password@host/db?sslmode=require"
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+# Server configuration
+PORT=5000
+CLIENT_ORIGIN="http://localhost:5173"
 
-3. Set up environment variables:
-   Create a `.env` file in the project root and add your Neon connection values:
-   ```env
-   DATABASE_URL="your_postgresql_url"
-   DIRECT_URL="your_direct_postgresql_url"
-   JWT_SECRET="your_jwt_secret"
-   ```
+# JWT Secrets
+JWT_ACCESS_SECRET="your_jwt_access_secret"
+JWT_REFRESH_SECRET="your_jwt_refresh_secret"
+```
 
-4. Generate the Prisma Client:
-   ```bash
-   npx prisma generate
-   ```
+### 4. Database Setup
+Generate the Prisma Client in the server:
+```bash
+npm --prefix server run prisma:generate
+```
+Run any pending migrations:
+```bash
+npm --prefix server run prisma:migrate
+```
 
-5. Apply database migrations:
-   ```bash
-   npx prisma migrate dev
-   ```
+---
 
-### Running the App
+## 💻 Development
 
-Start the Next.js development server:
+Run both the Express backend and Vite frontend concurrently with a single command:
 ```bash
 npm run dev
 ```
 
-The application will be running on `http://localhost:3000`.
+* **Frontend (Vite SPA):** [http://localhost:5173](http://localhost:5173)
+* **Backend (Express API):** [http://localhost:5000](http://localhost:5000)
+* **Health Check Endpoint:** [http://localhost:5000/api/health](http://localhost:5000/api/health)
 
-Open the following URLs to verify the setup:
+### Running Services Independently
+- Only Backend: `npm run dev:server` (runs `tsx watch` on port `5000`)
+- Only Frontend: `npm run dev:client` (runs `vite` on port `5173`)
 
-- Home page: `http://localhost:3000/`
-- Database health check: `http://localhost:3000/api/health`
+---
 
-Successful database connectivity returns:
+## 📦 Production Build
 
-```json
-{
-  "status": "ok",
-  "database": "connected to Neon"
-}
-```
-
-### Production
-
-Build and start the production server:
-
+Build both client and server:
 ```bash
 npm run build
-npm run start
 ```
 
-### Prisma Studio
-
-Open Prisma Studio to inspect the Neon database:
-
+Run the production Express server:
 ```bash
-npx prisma studio
+npm --prefix server run start
 ```
-
-Prisma Studio will be available at `http://localhost:5555`.
-
-## Contributing
-
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+*(The client's built static assets will be in `client/dist`).*

@@ -1,35 +1,18 @@
 {
   "name": "reddit-clone",
   "version": "1.0.0",
-  "description": "",
+  "private": true,
+  "description": "Reddit Clone - Decoupled React (Vite) + Express Monorepo",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start"
+    "dev": "concurrently -n \"server,client\" -c \"blue,green\" \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "dev:server": "npm run dev --prefix server",
+    "dev:client": "npm run dev --prefix client",
+    "build": "npm run build --prefix server && npm run build --prefix client",
+    "build:server": "npm run build --prefix server",
+    "build:client": "npm run build --prefix client",
+    "install:all": "npm install && npm install --prefix server && npm install --prefix client"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/OmarAhmedTHE25th/Reddit-clone.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "MIT",
-  "type": "module",
-  "bugs": {
-    "url": "https://github.com/OmarAhmedTHE25th/Reddit-clone/issues"
-  },
-  "homepage": "https://github.com/OmarAhmedTHE25th/Reddit-clone#readme",
   "devDependencies": {
-    "@prisma/language-server": "^6.19.0",
-    "prisma": "^6.19.3"
-  },
-  "dependencies": {
-    "@prisma/client": "^6.19.3",
-    "bcrypt": "^6.0.0",
-    "jsonwebtoken": "^9.0.3",
-    "next": "^16.4.3",
-    "react": "^19.3.1",
-    "react-dom": "^19.3.1",
-    "zod": "^4.6.7"
+    "concurrently": "^9.1.2"
   }
 }
