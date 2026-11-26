@@ -7,7 +7,7 @@ import cookieParser from 'cookie-parser';
 import healthRouter from './routes/health.js';
 import authRouter from './routes/auth.js';
 import usersRouter from './routes/users.js';
-
+import aiRouter from './routes/ai.js';
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 5000;
 const CLIENT_URL =
@@ -32,7 +32,7 @@ app.use(cookieParser());
 app.use('/api/health', healthRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/users', usersRouter);
-
+app.use('/api/ai', aiRouter);
 // 404 Handler
 app.use((_req: Request, res: Response) => {
   res.status(404).json({ error: 'Endpoint not found' });
