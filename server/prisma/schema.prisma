@@ -8,6 +8,23 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum PostStatus {
+  ACTIVE
+  DELETED
+  REMOVED
+}
+
+enum PostType {
+  TEXT
+  LINK
+  IMAGE
+}
+
+enum CommunityRole {
+  MEMBER
+  MODERATOR
+}
+
 model User {
   id            String         @id @default(uuid())
   username      String         @unique
@@ -19,6 +36,13 @@ model User {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   refreshTokens RefreshToken[]
+
+  createdCommunities Community[]      @relation("CommunityCreator")
+  memberships        CommunityMember[]
+  posts              Post[]
+  postVotes          PostVote[]
+  comments           Comment[]
+  commentVotes       CommentVote[]
 }
 
 model RefreshToken {
@@ -29,4 +53,107 @@ model RefreshToken {
   revoked   Boolean  @default(false)
   expiresAt DateTime
   createdAt DateTime @default(now())
+}
+
+model Community {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  iconUrl     String?
+  bannerUrl   String?
+  createdAt   DateTime @default(now())
+  creatorId   String
+  creator     User     @relation("CommunityCreator", fields: [creatorId], references: [id])
+
+  members CommunityMember[]
+  posts   Post[]
+}
+
+model CommunityMember {
+  userId      String
+  communityId String
+  role        CommunityRole @default(MEMBER)
+  joinedAt    DateTime      @default(now())
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  community   Community     @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@id([userId, communityId])
+  @@index([communityId])
+}
+
+model Post {
+  id           String     @id @default(uuid())
+  communityId  String
+  authorId     String
+  title        String
+  body         String?
+  type         PostType   @default(TEXT)
+  url          String?
+  slug         String
+  createdAt    DateTime   @default(now())
+  editedAt     DateTime?
+  ups          Int        @default(0)
+  downs        Int        @default(0)
+  score        Int        @default(0)
+  hotRank      Float      @default(0)
+  commentCount Int        @default(0)
+  status       PostStatus @default(ACTIVE)
+
+  community Community  @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  author    User       @relation(fields: [authorId], references: [id])
+  votes     PostVote[]
+  comments  Comment[]
+
+  @@index([status, hotRank(sort: Desc), id(sort: Desc)])
+  @@index([status, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([status, score(sort: Desc), id(sort: Desc)])
+  @@index([communityId, status, hotRank(sort: Desc), id(sort: Desc)])
+  @@index([communityId, status, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([communityId, status, score(sort: Desc), id(sort: Desc)])
+  @@index([authorId, createdAt(sort: Desc)])
+}
+
+model PostVote {
+  userId String
+  postId String
+  value  Int    @default(0)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@id([userId, postId])
+  @@index([postId])
+}
+
+model Comment {
+  id        String     @id @default(uuid())
+  postId    String
+  authorId  String
+  parentId  String?
+  body      String
+  createdAt DateTime   @default(now())
+  editedAt  DateTime?
+  ups       Int        @default(0)
+  downs     Int        @default(0)
+  score     Int        @default(0)
+  status    PostStatus @default(ACTIVE)
+
+  post    Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author  User          @relation(fields: [authorId], references: [id])
+  parent  Comment?      @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies Comment[]     @relation("CommentReplies")
+  votes   CommentVote[]
+
+  @@index([postId, createdAt])
+  @@index([parentId])
+}
+
+model CommentVote {
+  userId    String
+  commentId String
+  value     Int    @default(0)
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment   Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@id([userId, commentId])
+  @@index([commentId])
 }
