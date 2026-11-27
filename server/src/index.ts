@@ -1,5 +1,4 @@
-import dotenv from 'dotenv';
-dotenv.config();
+import 'dotenv/config';
 
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
@@ -8,6 +7,9 @@ import healthRouter from './routes/health.js';
 import authRouter from './routes/auth.js';
 import usersRouter from './routes/users.js';
 import aiRouter from './routes/ai.js';
+import feedRouter from './routes/feed.js';
+import communitiesRouter from './routes/communities.js';
+import postsRouter from './routes/posts.js';
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 5000;
 const CLIENT_URL =
@@ -33,6 +35,9 @@ app.use('/api/health', healthRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/ai', aiRouter);
+app.use('/api/feed', feedRouter);
+app.use('/api/communities', communitiesRouter);
+app.use('/api/posts', postsRouter);
 // 404 Handler
 app.use((_req: Request, res: Response) => {
   res.status(404).json({ error: 'Endpoint not found' });
@@ -40,6 +45,12 @@ app.use((_req: Request, res: Response) => {
 
 // Global Error Handler
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+  const status = (err as { status?: number }).status;
+  if (status && status < 500) {
+    res.status(status).json({ error: err.message });
+    return;
+  }
+
   console.error('Unhandled Server Error:', err);
   res.status(500).json({ error: 'Internal Server Error' });
 });

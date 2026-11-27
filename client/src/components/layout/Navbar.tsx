@@ -171,6 +171,9 @@ export default function Navbar() {
               <UserAvatar username={user.username} avatarUrl={user.avatarUrl} size={24} />
               <span>u/{user.username}</span>
             </Link>
+            <Link to="/submit" className="btn btn-primary navbar-create">
+              Create
+            </Link>
             <Link
               to="/settings"
               className="btn btn-ghost"
