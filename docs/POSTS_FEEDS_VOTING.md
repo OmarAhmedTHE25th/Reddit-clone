@@ -497,11 +497,12 @@ Cursor validation:
 
 ### Scoping
 
-The same listing function serves three scopes:
+The same listing function serves four scopes:
 
 - **Popular:** no scope filter.
 - **Community:** `communityId = :id`.
 - **Home:** `communityId IN (SELECT communityId FROM CommunityMember WHERE userId = :viewer)`.
+- **Profile:** `authorId = :id`.
 
 ### Page size and limits
 
@@ -667,6 +668,24 @@ Base URL: `http://localhost:5000`
 | POST | `/api/communities/:name/join` | Required | Join |
 | DELETE | `/api/communities/:name/join` | Required | Leave |
 
+### Users
+
+| Method | Path | Auth | Purpose |
+| --- | --- | --- | --- |
+| GET | `/api/users/search` | No | Search users by username/display name |
+| GET | `/api/users/:username` | Optional | Public profile with counts and joined communities |
+| GET | `/api/users/:username/posts` | Optional | Cursor feed of that user’s active posts |
+| PATCH | `/api/users/me` | Required | Update own profile |
+
+`GET /api/users/:username` returns the public identity fields plus:
+
+- `counts.posts`: number of `ACTIVE` posts authored by the user
+- `counts.comments`: number of `ACTIVE` comments authored by the user
+- `joinedCommunities`: `{ id, name, iconUrl }[]`, newest membership first
+- `isOwnProfile`: whether the caller is that user
+
+`GET /api/users/:username/posts` accepts `sort` (default `new`), `t`, `cursor`, and `limit` and returns the standard `{ items, nextCursor }` page. It is the same keyset implementation as the main feed, scoped by `authorId`, so profile pagination has the same tie-break and cursor guarantees.
+
 ### Query parameters
 
 `GET /api/feed`
@@ -816,6 +835,20 @@ Defaults:
 - Client-side disabled state until valid; server-side Zod validation remains authoritative.
 - On success, redirects to the new post’s discussion page.
 
+### Profile page
+
+`/u/:username` is served by the existing `ProfilePage`, now backed by the post engine:
+
+- Loads `GET /api/users/:username` for identity, real post/comment counts, and joined communities.
+- Loads `GET /api/users/:username/posts?sort=new` for the Posts tab.
+- **Overview** shows the three newest posts; **Posts** shows the full cursor feed with a Load more button.
+- Every entry is the shared `PostCard`, so voting, sharing, editing, deleting, and community links behave exactly as they do in feeds.
+- Deleting a post from the profile removes it locally and decrements the Posts count.
+- Joined communities link to `/r/:name` and render the community icon.
+- The **Comments** tab remains a placeholder until the comments module lands.
+
+The page keeps its legacy container and sidebar styling, while the post list uses the new card component and tokens.
+
 ### Styling
 
 The new surfaces use design tokens appended to `client/src/index.css`:
@@ -928,11 +961,17 @@ curl "http://localhost:5000/api/communities/webdev/posts?sort=new&limit=5"
 
 # search
 curl "http://localhost:5000/api/posts/search?q=pagination&page=1&limit=5"
+
+# profile aggregates and posts
+curl "http://localhost:5000/api/users/demo"
+curl "http://localhost:5000/api/users/demo/posts?sort=new&limit=5"
 ```
 
 Expected:
 
 - No duplicate post ids across consecutive pages for `best`, `hot`, `new`, or `top`.
+- Profile `counts.posts` matches the number of `ACTIVE` posts by that user, and `joinedCommunities` is non-empty for seeded users.
+- Profile posts paginate without duplicates and carry `myVote` / `viewerJoined` for the viewer.
 - `vote:race` prints `PASS` and `duplicate vote rows: 0`.
 - `db:reconcile` prints `OK`.
 - Search returns long-form posts with multi-paragraph bodies when the query matches them.

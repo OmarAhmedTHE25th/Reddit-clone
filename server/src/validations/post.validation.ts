@@ -78,6 +78,13 @@ export const communityPostsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(25),
 });
 
+export const userPostsQuerySchema = z.object({
+  sort: z.enum(POST_SORTS).default('new'),
+  t: z.enum(TOP_WINDOWS).default('day'),
+  cursor: z.string().max(512).optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(25),
+});
+
 export const createCommunitySchema = z.object({
   name: z
     .string()
@@ -111,6 +118,7 @@ export type CreatePostInput = z.infer<typeof createPostSchema>;
 export type UpdatePostInput = z.infer<typeof updatePostSchema>;
 export type FeedQuery = z.infer<typeof feedQuerySchema>;
 export type CommunityPostsQuery = z.infer<typeof communityPostsQuerySchema>;
+export type UserPostsQuery = z.infer<typeof userPostsQuerySchema>;
 export type CreateCommunityInput = z.infer<typeof createCommunitySchema>;
 export type ListCommunitiesQuery = z.infer<typeof listCommunitiesQuerySchema>;
 export type SearchPostsQuery = z.infer<typeof searchPostsQuerySchema>;

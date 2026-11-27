@@ -60,6 +60,7 @@ export interface ListPostsOptions {
   limit: number;
   viewerId: string | null;
   communityId?: string;
+  authorId?: string;
   homeFor?: string | null;
 }
 
@@ -158,9 +159,11 @@ export async function listPosts(options: ListPostsOptions): Promise<PageResult> 
 
   const scope = options.communityId
     ? Prisma.sql`AND p."communityId" = ${options.communityId}`
-    : options.homeFor
-      ? Prisma.sql`AND p."communityId" IN (SELECT m."communityId" FROM "CommunityMember" m WHERE m."userId" = ${options.homeFor})`
-      : Prisma.empty;
+    : options.authorId
+      ? Prisma.sql`AND p."authorId" = ${options.authorId}`
+      : options.homeFor
+        ? Prisma.sql`AND p."communityId" IN (SELECT m."communityId" FROM "CommunityMember" m WHERE m."userId" = ${options.homeFor})`
+        : Prisma.empty;
 
   const window =
     options.sort === 'top' && t0

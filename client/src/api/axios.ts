@@ -16,7 +16,11 @@ export interface PublicProfileUser extends AuthUser {
     posts: number;
     comments: number;
   };
-  joinedCommunities: Array<{ id: string; name: string }>;
+  joinedCommunities: Array<{
+    id: string;
+    name: string;
+    iconUrl?: string | null;
+  }>;
   isOwnProfile: boolean;
 }
 

@@ -3,7 +3,10 @@ import { Link, useParams } from 'react-router-dom';
 import { Calendar, Edit3, MessageSquare, FileText, Users } from 'lucide-react';
 import { AxiosError } from 'axios';
 import api, { PublicProfileUser } from '../api/axios';
+import { fetchUserPosts, type PostDto } from '../api/posts';
 import UserAvatar from '../components/common/UserAvatar';
+import CommunityIcon from '../components/common/CommunityIcon';
+import PostCard from '../components/feed/PostCard';
 
 type ProfileTab = 'overview' | 'posts' | 'comments';
 
@@ -13,6 +16,12 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ProfileTab>('overview');
+
+  const [posts, setPosts] = useState<PostDto[]>([]);
+  const [postsCursor, setPostsCursor] = useState<string | null>(null);
+  const [postsLoading, setPostsLoading] = useState(true);
+  const [postsError, setPostsError] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => {
     if (!username) return;
@@ -48,6 +57,73 @@ export default function ProfilePage() {
       isMounted = false;
     };
   }, [username]);
+
+  useEffect(() => {
+    if (!username) return;
+
+    let isMounted = true;
+    setPosts([]);
+    setPostsCursor(null);
+    setPostsError(null);
+    setPostsLoading(true);
+
+    fetchUserPosts(username, { sort: 'new', limit: 25 })
+      .then((page) => {
+        if (!isMounted) return;
+        setPosts(page.items);
+        setPostsCursor(page.nextCursor);
+      })
+      .catch(() => {
+        if (isMounted) setPostsError('Could not load posts.');
+      })
+      .finally(() => {
+        if (isMounted) setPostsLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [username]);
+
+  async function loadMorePosts() {
+    if (!username || !postsCursor || loadingMore) return;
+
+    setLoadingMore(true);
+    try {
+      const page = await fetchUserPosts(username, {
+        sort: 'new',
+        cursor: postsCursor,
+        limit: 25,
+      });
+      setPosts((previous) => {
+        const seen = new Set(previous.map((post) => post.id));
+        return [
+          ...previous,
+          ...page.items.filter((post) => !seen.has(post.id)),
+        ];
+      });
+      setPostsCursor(page.nextCursor);
+    } catch {
+      setPostsError('Could not load more posts.');
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
+  function handlePostDeleted(id: string) {
+    setPosts((previous) => previous.filter((post) => post.id !== id));
+    setProfile((previous) =>
+      previous
+        ? {
+            ...previous,
+            counts: {
+              ...previous.counts,
+              posts: Math.max(0, previous.counts.posts - 1),
+            },
+          }
+        : previous
+    );
+  }
 
   if (loading) {
     return (
@@ -114,14 +190,79 @@ export default function ProfilePage() {
               ))}
             </div>
 
-            <div className="card-body" style={{ textAlign: 'center', padding: '48px 24px' }}>
-              <p style={{ margin: '0 0 6px', fontWeight: 600 }}>
-                u/{profile.username} hasn&apos;t shared any {activeTab === 'overview' ? 'activity' : activeTab} yet
-              </p>
-              <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                Posts and comments will appear here once the Posts &amp; Comments modules are integrated.
-              </p>
-            </div>
+            {activeTab === 'comments' ? (
+              <div className="card-body" style={{ textAlign: 'center', padding: '48px 24px' }}>
+                <p style={{ margin: '0 0 6px', fontWeight: 600 }}>
+                  Comments are not available yet
+                </p>
+                <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                  u/{profile.username}&apos;s comments will appear here once the comments
+                  module is integrated.
+                </p>
+              </div>
+            ) : postsLoading ? (
+              <div className="card-body">Loading posts...</div>
+            ) : postsError && posts.length === 0 ? (
+              <div className="card-body">{postsError}</div>
+            ) : posts.length === 0 ? (
+              <div className="card-body" style={{ textAlign: 'center', padding: '48px 24px' }}>
+                <p style={{ margin: '0 0 6px', fontWeight: 600 }}>
+                  u/{profile.username} hasn&apos;t posted yet
+                </p>
+                <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                  Posts will appear here once they publish something.
+                </p>
+              </div>
+            ) : (
+              <div>
+                <div className="post-list-card">
+                  {(activeTab === 'overview' ? posts.slice(0, 3) : posts).map(
+                    (post) => (
+                      <PostCard
+                        key={post.id}
+                        post={post}
+                        onDeleted={handlePostDeleted}
+                      />
+                    )
+                  )}
+                </div>
+
+                {activeTab === 'overview' && posts.length > 3 && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    style={{ margin: '12px 16px' }}
+                    onClick={() => setActiveTab('posts')}
+                  >
+                    View all posts
+                  </button>
+                )}
+
+                {activeTab === 'posts' && postsCursor && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    style={{ margin: '12px 16px' }}
+                    onClick={loadMorePosts}
+                    disabled={loadingMore}
+                  >
+                    {loadingMore ? 'Loading...' : 'Load more'}
+                  </button>
+                )}
+
+                {postsError && posts.length > 0 && (
+                  <p
+                    style={{
+                      margin: '0 16px 12px',
+                      fontSize: '0.8rem',
+                      color: 'var(--upvote)',
+                    }}
+                  >
+                    {postsError}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -240,8 +381,15 @@ export default function ProfilePage() {
               ) : (
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                   {profile.joinedCommunities.map((c) => (
-                    <li key={c.id} style={{ padding: '4px 0', fontSize: '0.88rem', fontWeight: 600 }}>
-                      r/{c.name}
+                    <li key={c.id}>
+                      <Link to={`/r/${c.name}`} className="profile-community">
+                        <CommunityIcon
+                          name={c.name}
+                          iconUrl={c.iconUrl}
+                          size={20}
+                        />
+                        <span>r/{c.name}</span>
+                      </Link>
                     </li>
                   ))}
                 </ul>
