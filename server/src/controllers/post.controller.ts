@@ -4,11 +4,13 @@ import {
   deletePost,
   getPost,
   removePost,
+  searchPosts,
   updatePost,
   applyPostVote,
 } from '../services/post.service.js';
 import type {
   CreatePostInput,
+  SearchPostsQuery,
   UpdatePostInput,
 } from '../validations/post.validation.js';
 
@@ -20,6 +22,20 @@ export async function getPostById(
   try {
     const post = await getPost(req.params.id, req.user?.id ?? null);
     res.status(200).json({ post });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function searchPostsByQuery(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { q, page, limit } = res.locals.validatedQuery as SearchPostsQuery;
+    const result = await searchPosts(q, page, limit, req.user?.id ?? null);
+    res.status(200).json(result);
   } catch (error) {
     next(error);
   }

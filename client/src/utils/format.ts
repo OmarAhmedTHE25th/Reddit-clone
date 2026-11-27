@@ -59,3 +59,10 @@ export function safeHostname(url: string): string {
     return url;
   }
 }
+
+export function splitTldr(title: string): { isTldr: boolean; text: string } {
+  const match = /^tl;?dr:\s*/i.exec(title);
+  return match
+    ? { isTldr: true, text: title.slice(match[0].length) }
+    : { isTldr: false, text: title };
+}

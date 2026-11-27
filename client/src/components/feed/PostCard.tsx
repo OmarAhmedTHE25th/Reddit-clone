@@ -21,6 +21,7 @@ import {
   formatFullDate,
   formatScore,
   safeHostname,
+  splitTldr,
   timeAgo,
 } from '../../utils/format';
 import CommunityIcon from '../common/CommunityIcon';
@@ -54,6 +55,7 @@ export default function PostCard({
   const canEdit = isAuthor && post.status === 'ACTIVE';
   const canRemove =
     Boolean(post.viewerIsModerator) && post.status === 'ACTIVE';
+  const tldr = splitTldr(post.title);
 
   function closeMenu() {
     menuRef.current?.removeAttribute('open');
@@ -186,7 +188,8 @@ export default function PostCard({
       </div>
 
       <Link to={postUrl} className="post-title">
-        {post.title}
+        {tldr.isTldr && <span className="tldr-tag">TL;DR</span>}
+        {tldr.text}
       </Link>
 
       {post.type === 'LINK' && post.url ? (

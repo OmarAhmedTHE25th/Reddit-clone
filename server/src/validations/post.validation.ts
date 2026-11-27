@@ -101,9 +101,16 @@ export const listCommunitiesQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });
 
+export const searchPostsQuerySchema = z.object({
+  q: z.string().trim().min(1, 'Search query is required').max(100),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(50).default(10),
+});
+
 export type CreatePostInput = z.infer<typeof createPostSchema>;
 export type UpdatePostInput = z.infer<typeof updatePostSchema>;
 export type FeedQuery = z.infer<typeof feedQuerySchema>;
 export type CommunityPostsQuery = z.infer<typeof communityPostsQuerySchema>;
 export type CreateCommunityInput = z.infer<typeof createCommunitySchema>;
 export type ListCommunitiesQuery = z.infer<typeof listCommunitiesQuerySchema>;
+export type SearchPostsQuery = z.infer<typeof searchPostsQuerySchema>;

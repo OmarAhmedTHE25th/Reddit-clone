@@ -82,6 +82,29 @@ export interface FeedParams {
   limit?: number;
 }
 
+export interface SearchPostsResponse {
+  items: PostDto[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+  };
+}
+
+export async function searchPosts(
+  q: string,
+  page = 1,
+  limit = 10
+): Promise<SearchPostsResponse> {
+  const response = await api.get<SearchPostsResponse>('/posts/search', {
+    params: { q, page, limit },
+  });
+  return response.data;
+}
+
 export async function fetchFeed(params: FeedParams): Promise<FeedResponse> {
   const response = await api.get<FeedResponse>('/feed', {
     params: { ...params, cursor: params.cursor ?? undefined },

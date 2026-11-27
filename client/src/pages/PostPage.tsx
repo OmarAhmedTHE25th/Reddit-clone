@@ -18,7 +18,7 @@ import {
   updatePost,
   type PostDto,
 } from '../api/posts';
-import { formatScore, safeHostname, timeAgo } from '../utils/format';
+import { formatScore, safeHostname, splitTldr, timeAgo } from '../utils/format';
 import AppShell from '../components/layout/AppShell';
 import VotePill from '../components/feed/VotePill';
 import CommunityIcon from '../components/common/CommunityIcon';
@@ -90,6 +90,7 @@ function PostDetail({
   const postUrl = `/r/${post.community.name}/comments/${post.id}/${post.slug}`;
   const isAuthor = user?.id === post.author.id;
   const canEdit = isAuthor && post.status === 'ACTIVE';
+  const tldr = splitTldr(post.title);
 
   function stopEditing() {
     setEditing(false);
@@ -207,7 +208,10 @@ function PostDetail({
           </div>
         ) : (
           <>
-            <h1 className="post-detail-title">{post.title}</h1>
+            <h1 className="post-detail-title">
+              {tldr.isTldr && <span className="tldr-tag">TL;DR</span>}
+              {tldr.text}
+            </h1>
             {post.type === 'LINK' && post.url ? (
               <a
                 className="post-link"

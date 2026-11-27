@@ -84,6 +84,128 @@ const BODIES = [
   'I kept the scope deliberately small: one feature, done well, instead of five features half-finished.',
 ];
 
+const LONG_BODIES = [
+  `Background
+
+I started this project at the beginning of the semester with a very naive plan: build the database, build the API, build the UI, done. Three months later I have a much better appreciation for why people say the hard part is not writing code, it is deciding what the code should do.
+
+The first version stored a post score as a plain integer on the post row and incremented it whenever someone clicked an arrow. It worked perfectly in my demo. It fell apart the moment I opened two browser tabs and voted from both of them at the same time. The score jumped by two, but only one vote row existed.
+
+What I changed
+
+I moved the counter updates into a transaction that locks the post row first, reads the previous vote value, and applies a delta. The key insight was that the database should own the invariant, not the application. I added a check constraint so that score must equal ups minus downs, which means a bug now fails loudly instead of quietly corrupting data.
+
+The second change was pagination. My original feed used OFFSET, which is fine until posts are created while you scroll. Halfway down page three you start seeing duplicates, and if you are unlucky you skip posts entirely. I switched to keyset pagination with a composite cursor of rank plus id. Ties are real: two posts can have exactly the same rank, and without the id tie-break the database is free to return them in either order.
+
+What I would tell a first-year student
+
+Do not optimize before you have a query plan. I spent an entire evening tuning an index that Postgres was not even using, because the planner had decided a sequential scan was cheaper for my table size. EXPLAIN ANALYZE would have saved me four hours.
+
+Also, write the test that reproduces the bug before you fix it. My vote race test is twenty lines long and it has caught two regressions since I wrote it. That is a much better return on investment than the hour I spent making my folder structure look tidy.
+
+Next steps
+
+I want to add comment votes using the same pattern, then load test the feed with a few thousand concurrent readers. If anyone has done that with Prisma and Neon, I would love to hear how you handled connection pooling.`,
+
+  `The short version: I lost a weekend to a bug that was one missing await.
+
+Long version
+
+I was building the create-post flow. The client sent a title and body, the server inserted a row, and then it immediately returned the post so the UI could navigate to the discussion page. Everything looked fine in development because the request finished in about forty milliseconds.
+
+Then I added an automatic self-upvote. Reddit does this: your own post starts at one point. I created the vote row and updated the post counters in a second query. I forgot to await the update. Most of the time it finished before the response was serialized, so the client saw the right score. Occasionally it did not, and the page showed zero until you refreshed.
+
+Why it was hard to find
+
+The bug was timing dependent, so it never appeared when I was stepping through with a debugger. It also never appeared in the first ten manual tests. It showed up when I clicked through the flow quickly on a slower connection, which is exactly the situation a grader will be in.
+
+The fix was trivial. The lesson was not. I now treat every database write as something that must be awaited explicitly, and I keep the transaction boundary as small as I can while still covering the invariant.
+
+A checklist I now use
+
+1. Does this write need to succeed before the response is sent?
+2. If it fails, what does the user see?
+3. Can a retry create a duplicate row?
+4. Is there a unique constraint that makes the retry safe?
+5. Can I reproduce the failure with a test?
+
+That last question is the one I used to skip. It is also the one that would have saved me the weekend.
+
+If you are building something similar, my advice is to make the happy path boring and explicit. Clever shortcuts around async code are how you end up debugging at 2am.`,
+
+  `I rewrote my feed component three times and the third version is the one I am keeping.
+
+Version one used a single useEffect that fetched everything and stored it in one state variable. It was easy to read and impossible to extend. Adding a sort dropdown meant refetching, which meant clearing the list, which meant the page jumped to the top while the user was reading.
+
+Version two moved the fetching into a custom hook. That was better, but I made the classic mistake of putting the fetch function in the dependency array. The hook recreated the function on every render, the effect ran again, and I DDOSed my own API. I only noticed because the server logs showed forty requests for one page load.
+
+Version three separates three things: the request key, the loader, and the state machine. The key is a string like home:best:day. When the key changes, the hook resets and loads the first page. The loader is held in a ref so a new function identity does not restart the request. The state machine tracks loading, loading more, error, and whether there is a next cursor.
+
+What this bought me
+
+Infinite scroll now works without duplicates. If a page arrives late, the request id tells me to ignore it. If the user changes the sort while a request is in flight, the old response cannot overwrite the new one. If a post is deleted from the feed, I remove it locally instead of refetching everything.
+
+The whole hook is about a hundred lines. It is not clever, and that is the point. Every line exists because a specific bug forced it to.
+
+What I would do differently
+
+I would write the key first. Deciding what identifies a feed before writing any fetching code makes the rest of the component fall into place. I would also test the hook in isolation with a fake loader that resolves out of order, because that is the failure mode that is hardest to catch by clicking around.
+
+If you are building a feed for a class project, start with the boring version. Get one page rendering, then add a cursor, then add a second page. Do not start with infinite scroll and optimistic updates.`,
+
+  `Context: I am a third-year computer engineering student, and this semester I did a co-op term at a company that builds developer tools.
+
+What surprised me
+
+The codebase was older than I expected. Not ancient, but old enough that the original authors had moved on and the current team was afraid to touch the billing module. Nobody said it was untouchable. It just was.
+
+The first task I got was to add a small feature to that module. It took me four days to make a change that would have taken twenty minutes in a fresh project. Most of that time was spent understanding why a function named calculateTotal was called from three places that all passed slightly different arguments.
+
+What I learned about reading code
+
+I stopped trying to understand everything and started following one path at a time. Pick a request, follow it from the route to the database, write down every function it touches. Then pick the next request. After a week the map in my notebook was more useful than any documentation.
+
+I also learned to ask why before how. Why is this check here? Why does this value get rounded twice? Half the time the answer was a bug that had been promoted to a requirement. The other half it was a real constraint I would have broken.
+
+What I would tell someone starting a co-op
+
+Ask for a small task in your first week, even if it feels beneath you. Shipping something, anything, teaches you the deployment pipeline, the review process, and the naming conventions. Those are the things that make you useful.
+
+Keep a running document of questions and answers. You will forget the answer to the same question three times otherwise, and people notice when you ask a fourth.
+
+Do not apologize for asking. Apologize for not writing it down.
+
+The part nobody tells you
+
+The hardest part was not technical. It was realizing that a lot of decisions are made for reasons that are no longer visible, and that the right move is usually to match the existing pattern rather than to improve it in isolation. I am still not sure how I feel about that, but I understand it now.`,
+
+  `I spent two weeks trying to make a slow query fast and I want to save someone else the trouble.
+
+The query
+
+The feed needed the top posts for a set of communities, ordered by a computed hot score, with a limit and a cursor. My first version joined posts to votes, grouped by post, computed the score, and sorted. On two thousand posts it was fine. On two hundred thousand it was not.
+
+What I tried first
+
+I added an index on the score column. The query planner ignored it, because the score was computed from an aggregate and the index was on the stored column, which was not the same thing.
+
+Then I tried caching the score in Redis. That made the first page fast and made every write more complicated, and it did not solve the cold start problem at all.
+
+Then I tried denormalizing the counters onto the post row. That is the version I kept, but only after I made the writes safe with row locks and check constraints.
+
+What actually helped
+
+The biggest win was reducing the number of rows the database had to consider before sorting. I added a partial index on active posts and included the rank column, so the planner could walk the index in order and stop after the limit. The second win was making the rank a stored column instead of an expression, which meant the index could actually be used.
+
+The third win was smaller but satisfying: I changed the cursor comparison from a row constructor to an explicit pair of comparisons with the anchor row loaded separately. My first version was comparing a floating point value that had been serialized to JSON and back, and the tiny rounding error meant the cursor row could appear again on the next page.
+
+What I would do next time
+
+Read the query plan before touching anything. Write down the row counts at each step. Then change one thing at a time and re-read the plan.
+
+Most of all, do not trust a benchmark you ran once. My first timing was on a warm cache with a tiny table. The numbers were meaningless.`,
+];
+
 async function main() {
   const passwordHash = await bcrypt.hash(PASSWORD, 10);
 
@@ -187,14 +309,18 @@ async function main() {
     const members = memberMap.get(community.id) ?? userIds;
     const authorId = pick(members);
     const title = pick(TITLE_PARTS);
-    const isLink = rand() < 0.12;
+    // Roughly one in five posts is a long-form write-up. Those get a TL;DR
+    // title marker and a multi-paragraph body so the AI summarizer has
+    // something shorter to compress.
+    const isLong = rand() < 0.2;
+    const isLink = !isLong && rand() < 0.12;
 
     posts.push({
       id: randomUUID(),
       communityId: community.id,
       authorId,
-      title,
-      body: isLink ? null : pick(BODIES),
+      title: isLong ? `TL;DR: ${title}` : title,
+      body: isLink ? null : isLong ? pick(LONG_BODIES) : pick(BODIES),
       type: isLink ? 'LINK' : 'TEXT',
       url: isLink ? `https://example.com/${slugify(title)}-${i}` : null,
       slug: slugify(title),

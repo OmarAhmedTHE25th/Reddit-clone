@@ -507,3 +507,9 @@ textarea {
 .comments-title { margin: 0 0 12px; font-size: 1rem; font-weight: 600; }
 .comment-composer-placeholder { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--r-pill); font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px; }
 .muted { font-size: 0.8rem; color: var(--text-muted); }
+
+.search-section { margin-bottom: 24px; }
+.search-section-title { margin: 0 0 10px; font-size: 0.95rem; font-weight: 600; }
+.search-post-list { border: 1px solid var(--border); border-radius: var(--r-card); overflow: hidden; }
+.search-post-list .post-card:last-child { border-bottom: none; }
+.tldr-tag { display: inline-block; margin-right: 6px; padding: 1px 7px; border-radius: 6px; background: var(--bg-pill); font-size: 0.62em; font-weight: 800; letter-spacing: .4px; text-transform: uppercase; vertical-align: middle; }

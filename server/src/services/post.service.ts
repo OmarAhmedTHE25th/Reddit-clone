@@ -126,6 +126,19 @@ async function hydratePosts(
   }));
 }
 
+async function joinedCommunityIds(
+  viewerId: string | null,
+  communityIds: string[]
+): Promise<Set<string>> {
+  if (!viewerId || communityIds.length === 0) return new Set();
+
+  const memberships = await prisma.communityMember.findMany({
+    where: { userId: viewerId, communityId: { in: communityIds } },
+    select: { communityId: true },
+  });
+  return new Set(memberships.map((membership) => membership.communityId));
+}
+
 export async function listPosts(options: ListPostsOptions): Promise<PageResult> {
   const cursor = options.cursor ? decodeCursor(options.cursor) : null;
   if (options.cursor && !cursor) {
@@ -187,17 +200,7 @@ export async function listPosts(options: ListPostsOptions): Promise<PageResult> 
   const byId = new Map(hydrated.map((post) => [post.id, post]));
 
   const communityIds = [...new Set(hydrated.map((post) => post.communityId))];
-  const memberships =
-    options.viewerId && communityIds.length
-      ? await prisma.communityMember.findMany({
-          where: {
-            userId: options.viewerId,
-            communityId: { in: communityIds },
-          },
-          select: { communityId: true },
-        })
-      : [];
-  const joined = new Set(memberships.map((m) => m.communityId));
+  const joined = await joinedCommunityIds(options.viewerId, communityIds);
 
   const items = ids
     .map((id) => byId.get(id))
@@ -217,6 +220,72 @@ export async function listPosts(options: ListPostsOptions): Promise<PageResult> 
       : null;
 
   return { items, nextCursor };
+}
+
+export interface SearchPostsResult {
+  items: PostDto[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+  };
+}
+
+export async function searchPosts(
+  q: string,
+  page: number,
+  limit: number,
+  viewerId: string | null
+): Promise<SearchPostsResult> {
+  const where: Prisma.PostWhereInput = {
+    status: 'ACTIVE',
+    OR: [
+      { title: { contains: q, mode: 'insensitive' } },
+      { body: { contains: q, mode: 'insensitive' } },
+    ],
+  };
+  const skip = (page - 1) * limit;
+
+  const [rows, total] = await Promise.all([
+    prisma.post.findMany({
+      where,
+      orderBy: [{ hotRank: 'desc' }, { id: 'desc' }],
+      skip,
+      take: limit,
+      select: { id: true },
+    }),
+    prisma.post.count({ where }),
+  ]);
+
+  const ids = rows.map((row) => row.id);
+  const hydrated = ids.length ? await hydratePosts(ids, viewerId) : [];
+  const byId = new Map(hydrated.map((post) => [post.id, post]));
+  const joined = await joinedCommunityIds(
+    viewerId,
+    [...new Set(hydrated.map((post) => post.communityId))]
+  );
+
+  const items = ids
+    .map((id) => byId.get(id))
+    .filter((post): post is HydratedPost => Boolean(post))
+    .map((post) => toPostDto(post, joined.has(post.communityId)));
+
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+
+  return {
+    items,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    },
+  };
 }
 
 export async function getPost(
