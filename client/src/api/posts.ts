@@ -128,6 +128,17 @@ export async function fetchPost(id: string): Promise<PostDto> {
   return response.data.post;
 }
 
+export async function fetchUserPosts(
+  username: string,
+  params: { sort?: string; t?: string; cursor?: string | null; limit?: number } = {}
+): Promise<FeedResponse> {
+  const response = await api.get<FeedResponse>(
+    `/users/${encodeURIComponent(username)}/posts`,
+    { params: { ...params, cursor: params.cursor ?? undefined } }
+  );
+  return response.data;
+}
+
 export async function votePost(
   id: string,
   value: -1 | 0 | 1

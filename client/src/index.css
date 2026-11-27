@@ -510,6 +510,8 @@ textarea {
 
 .search-section { margin-bottom: 24px; }
 .search-section-title { margin: 0 0 10px; font-size: 0.95rem; font-weight: 600; }
-.search-post-list { border: 1px solid var(--border); border-radius: var(--r-card); overflow: hidden; }
-.search-post-list .post-card:last-child { border-bottom: none; }
+.search-post-list, .post-list-card { border: 1px solid var(--border); border-radius: var(--r-card); overflow: hidden; }
+.search-post-list .post-card:last-child, .post-list-card .post-card:last-child { border-bottom: none; }
+.profile-community { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 0.88rem; font-weight: 600; color: var(--text); }
+.profile-community:hover { text-decoration: underline; }
 .tldr-tag { display: inline-block; margin-right: 6px; padding: 1px 7px; border-radius: 6px; background: var(--bg-pill); font-size: 0.62em; font-weight: 800; letter-spacing: .4px; text-transform: uppercase; vertical-align: middle; }

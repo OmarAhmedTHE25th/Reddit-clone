@@ -1,4 +1,5 @@
 import prisma from '../config/db.js';
+import { listPosts } from '../services/post.service.js';
 /**
  * GET /api/users/search?q=...&page=1&limit=10
  * Case-insensitive search on username and displayName with pagination.
@@ -65,27 +66,66 @@ export async function getUserProfile(req, res, next) {
                 bio: true,
                 avatarUrl: true,
                 createdAt: true,
+                _count: {
+                    select: {
+                        posts: { where: { status: 'ACTIVE' } },
+                        comments: { where: { status: 'ACTIVE' } },
+                    },
+                },
+                memberships: {
+                    orderBy: { joinedAt: 'desc' },
+                    select: {
+                        community: { select: { id: true, name: true, iconUrl: true } },
+                    },
+                },
             },
         });
         if (!user) {
             res.status(404).json({ error: `User u/${username} not found` });
             return;
         }
-        // Teammate integration note:
-        // Once Post, Comment, and CommunityMember models are added to schema.prisma,
-        // include `_count: { select: { posts: true, comments: true } }` and `memberships`
-        // in the query above and populate `counts` and `joinedCommunities` below.
+        const { _count, memberships, ...profile } = user;
         res.status(200).json({
             user: {
-                ...user,
+                ...profile,
                 counts: {
-                    posts: 0,
-                    comments: 0,
+                    posts: _count.posts,
+                    comments: _count.comments,
                 },
-                joinedCommunities: [],
+                joinedCommunities: memberships.map((membership) => membership.community),
                 isOwnProfile: req.user?.id === user.id,
             },
         });
+    }
+    catch (error) {
+        next(error);
+    }
+}
+/**
+ * GET /api/users/:username/posts
+ * Cursor-paginated posts authored by one user.
+ */
+export async function getUserPosts(req, res, next) {
+    try {
+        const { username } = req.params;
+        const query = res.locals.validatedQuery;
+        const user = await prisma.user.findFirst({
+            where: { username: { equals: username, mode: 'insensitive' } },
+            select: { id: true },
+        });
+        if (!user) {
+            res.status(404).json({ error: `User u/${username} not found` });
+            return;
+        }
+        const result = await listPosts({
+            sort: query.sort,
+            t: query.t,
+            cursor: query.cursor,
+            limit: query.limit,
+            viewerId: req.user?.id ?? null,
+            authorId: user.id,
+        });
+        res.status(200).json(result);
     }
     catch (error) {
         next(error);
